@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+model Cliente {
+  id         String    @id @default(uuid())
+  nombre     String
+  telefono   String
+  email      String?
+  duiNit     String?
+  direccion  String?
+  telAlt     String?
+  canalPref  String    @default("whatsapp")
+  creadoEn   DateTime  @default(now())
+  vehiculos  Vehiculo[]
+  recordatorios Recordatorio[]
+}
+
+model Vehiculo {
+  id           String         @id @default(uuid())
+  clienteId    String
+  placa        String         @unique
+  marca        String
+  modelo       String
+  anio         Int
+  kilometraje  Int
+  cliente      Cliente        @relation(fields: [clienteId], references: [id])
+  mantenimientos Mantenimiento[]
+}
+
+model Mantenimiento {
+  id           String    @id @default(uuid())
+  vehiculoId   String
+  fecha        DateTime
+  kmEnServicio Int
+  kmProximo    Int?
+  fechaProxima DateTime?
+  estado       String    @default("completado")
+  notas        String?
+  vehiculo     Vehiculo  @relation(fields: [vehiculoId], references: [id])
+  servicios    Servicio[]
+  recordatorios Recordatorio[]
+}
+
+model Servicio {
+  id              String        @id @default(uuid())
+  mantenimientoId String
+  descripcion     String
+  costo           Float
+  tipo            String
+  viscosidad      String?
+  aceiteId        String?
+  cantidadAceite  Float?
+  mantenimiento   Mantenimiento @relation(fields: [mantenimientoId], references: [id])
+  aceite          Aceite?       @relation(fields: [aceiteId], references: [id])
+}
+
+model Recordatorio {
+  id              String        @id @default(uuid())
+  mantenimientoId String
+  clienteId       String
+  fechaEnvio      DateTime
+  canal           String
+  estado          String        @default("pendiente")
+  mantenimiento   Mantenimiento @relation(fields: [mantenimientoId], references: [id])
+  cliente         Cliente       @relation(fields: [clienteId], references: [id])
+}
+model Aceite {
+  id            String   @id @default(uuid())
+  marca         String
+  viscosidad    String
+  tipoEnvase    String   // 'cuarto' | 'pachon'
+  stockActual   Float    @default(0)
+  stockMinimo   Float    @default(5)
+  precioCompra  Float?
+  activo        Boolean  @default(true)
+  creadoEn      DateTime @default(now())
+  movimientos   MovimientoInventario[]
+  servicios     Servicio[]
+}
+
+model MovimientoInventario {
+  id        String   @id @default(uuid())
+  aceiteId  String
+  tipo      String   // 'entrada' | 'salida'
+  cantidad  Float
+  razon     String   // 'compra' | 'mantenimiento' | 'ajuste'
+  referencia String? // id del mantenimiento si aplica
+  fecha     DateTime @default(now())
+  aceite    Aceite   @relation(fields: [aceiteId], references: [id])
+}
